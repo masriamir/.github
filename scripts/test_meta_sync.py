@@ -85,6 +85,7 @@ marker = "base"
     (repo / "config.txt").write_text("local top\n# >>> meta:base\ntampered\n# <<< meta:base\nlocal bottom\n")
     r = run(repo, "check")
     case("check fails on drift in both modes", r.returncode == 1 and r.stderr.count("drift") == 2)
+    case("diff direction: canonical is the new file", "+++ canonical" in r.stderr and "--- canonical" not in r.stderr)
     run(repo, "sync")
     case("sync repairs drift", run(repo, "check").returncode == 0)
 
