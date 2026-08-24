@@ -31,6 +31,7 @@ canonical repositories must be public.
 """
 
 import difflib
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -50,11 +51,22 @@ def entry_id(entry: dict) -> str:
 
 def fetch(entry: dict) -> str:
     src = entry["source"]
-    if src.startswith("file:"):
-        return (Path(src[len("file:"):]) / entry["path"]).read_text(encoding="utf-8")
-    url = f"https://raw.githubusercontent.com/{src}/{entry['ref']}/{entry['path']}"
-    with urllib.request.urlopen(url, timeout=30) as response:
-        return response.read().decode("utf-8")
+    try:
+        if src.startswith("file:"):
+            return (Path(src[len("file:"):]) / entry["path"]).read_text(encoding="utf-8")
+        ref = entry["ref"]
+        if not re.fullmatch(r"[0-9a-f]{40}", ref):
+            raise SystemExit(
+                f"meta_sync: {entry_id(entry)}: ref {ref!r} is not a 40-char commit "
+                "sha — pin an exact commit, not a branch or tag"
+            )
+        url = f"https://raw.githubusercontent.com/{src}/{ref}/{entry['path']}"
+        with urllib.request.urlopen(url, timeout=30) as response:
+            return response.read().decode("utf-8")
+    except SystemExit:
+        raise
+    except OSError as error:  # URLError/HTTPError/FileNotFoundError all subclass it
+        raise SystemExit(f"meta_sync: cannot fetch {entry_id(entry)}: {error}") from error
 
 
 def find_block(lines: list[str], marker: str) -> tuple[int, int] | None:
@@ -78,13 +90,13 @@ def check_entry(entry: dict, canonical: str) -> str | None:
         actual, label = text, str(dest)
     else:
         marker = entry["marker"]
-        bounds = find_block(text.splitlines(keepends=True), marker)
+        lines = text.splitlines(keepends=True)
+        bounds = find_block(lines, marker)
         if bounds is None:
             return (
                 f"{entry_id(entry)}: marker lines '>>> meta:{marker}' / "
                 f"'<<< meta:{marker}' not found"
             )
-        lines = text.splitlines(keepends=True)
         actual, label = "".join(lines[bounds[0] + 1 : bounds[1]]), f"{dest} [block {marker}]"
     if actual == canonical:
         return None

@@ -100,5 +100,41 @@ marker = "base"
     empty.mkdir()
     case("missing manifest exits 2", run(empty, "check").returncode == 2)
 
+    # Fetch/config failures surface as clean meta_sync messages, never tracebacks.
+    bad = root / "badpath"
+    bad.mkdir()
+    (bad / ".meta-manifest.toml").write_text(
+        f"""
+[[file]]
+source = "file:{canonical}"
+path = "templates/missing.txt"
+dest = "missing.txt"
+mode = "file"
+"""
+    )
+    r = run(bad, "check")
+    case(
+        "missing canonical path fails cleanly",
+        r.returncode != 0 and "meta_sync:" in r.stderr and "Traceback" not in r.stderr,
+    )
+
+    badref = root / "badref"
+    badref.mkdir()
+    (badref / ".meta-manifest.toml").write_text(
+        """
+[[file]]
+source = "masriamir/.github"
+ref = "main"
+path = "templates/editorconfig"
+dest = ".editorconfig"
+mode = "file"
+"""
+    )
+    r = run(badref, "check")  # ref validation fires before any network fetch
+    case(
+        "non-sha ref rejected with a clear message",
+        r.returncode != 0 and "40-char commit sha" in r.stderr and "Traceback" not in r.stderr,
+    )
+
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
