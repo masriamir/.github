@@ -6,11 +6,15 @@ name: PR Title
 # string the changelog/version tooling parses — lefthook's commit-msg hook checks
 # branch commits, which are exactly what squash-merge discards.
 #
-# The judge is the CALLER's vendored `scripts/check-conventional-subject.py`. That
-# copy is kept byte-identical to this repository's canonical one by the meta-check
-# drift gate, so the validator is effectively pinned without a second checkout —
-# and it is self-tested here before it judges anything, so a regression in it
-# cannot pass silently.
+# The judge is the CALLER's vendored `scripts/check-conventional-subject.py`,
+# self-tested here before it judges anything. The meta-check drift gate keeps
+# that vendored copy identical to this repository's canonical one on `main` —
+# but this workflow (and meta-check itself) runs code from the PR head, so a
+# PR that edits the validator, its test, and the manifest together can pass
+# its own gate. Accepted for solo-maintained repositories: treat the pair as
+# protection against unnoticed drift over time, not as tamper-proof against a
+# malicious PR. Hardening option if that ever changes: validate with a trusted
+# copy checked out from this repository at the reusable-workflow ref.
 #
 # Call from a repository with:
 #

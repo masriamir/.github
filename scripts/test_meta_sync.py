@@ -161,5 +161,22 @@ mode = "file"
         "mode must be 'file' or 'block'",
     )
 
+    # Unreadable (non-UTF8) destinations and canonical sources fail cleanly too.
+    (repo / "shared.txt").write_bytes(b"\xff\xfe\x00 not utf-8")
+    r = run(repo, "check")
+    case(
+        "non-UTF8 destination reported as a per-entry failure",
+        r.returncode == 1 and "cannot read" in r.stderr and "Traceback" not in r.stderr,
+    )
+    run(repo, "sync")  # file mode overwrites without reading the destination
+    case("sync restores the non-UTF8 destination", run(repo, "check").returncode == 0)
+    block_src.write_bytes(b"\xff\xfe binary")
+    r = run(repo, "check")
+    case(
+        "non-UTF8 canonical fails cleanly",
+        r.returncode != 0 and "cannot fetch" in r.stderr and "Traceback" not in r.stderr,
+    )
+    block_src.write_text("shared A\nshared B\n")
+
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)

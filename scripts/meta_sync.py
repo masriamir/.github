@@ -65,7 +65,8 @@ def fetch(entry: dict) -> str:
             return response.read().decode("utf-8")
     except SystemExit:
         raise
-    except OSError as error:  # URLError/HTTPError/FileNotFoundError all subclass it
+    except (OSError, UnicodeError) as error:  # URLError/HTTPError/FileNotFoundError
+        # are all OSError; UnicodeError covers non-UTF8 canonical content.
         raise SystemExit(f"meta_sync: cannot fetch {entry_id(entry)}: {error}") from error
 
 
@@ -112,7 +113,10 @@ def check_entry(entry: dict, canonical: str) -> str | None:
     dest = Path(entry["dest"])
     if not dest.exists():
         return f"{entry_id(entry)}: destination missing"
-    text = dest.read_text(encoding="utf-8")
+    try:
+        text = dest.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return f"{entry_id(entry)}: cannot read {dest}: {error}"
     if entry.get("mode", "file") == "file":
         actual, label = text, str(dest)
     else:
@@ -147,7 +151,10 @@ def sync_entry(entry: dict, canonical: str) -> None:
             f"meta_sync: cannot sync {entry_id(entry)} — destination missing; "
             "block mode needs the file with its marker lines seeded first"
         )
-    lines = dest.read_text(encoding="utf-8").splitlines(keepends=True)
+    try:
+        lines = dest.read_text(encoding="utf-8").splitlines(keepends=True)
+    except (OSError, UnicodeError) as error:
+        raise SystemExit(f"meta_sync: cannot read {entry_id(entry)}: {error}") from error
     bounds = find_block(lines, entry["marker"])
     if bounds is None:
         raise SystemExit(

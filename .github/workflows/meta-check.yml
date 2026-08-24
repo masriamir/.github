@@ -5,6 +5,11 @@ name: Meta Check
 # manifest format). Callers vendor `scripts/meta_sync.py` and carry a
 # `.meta-manifest.toml` at the repository root.
 #
+# Known limitation (accepted for solo-maintained repositories): this runs the
+# CALLER's vendored `meta_sync.py` from the checked-out head, so a tampered
+# vendored copy — or a PR editing the tool and manifest together — can lie
+# about itself. The gate protects against unnoticed drift, not malice.
+#
 # Call from a repository with:
 #
 #   jobs:
