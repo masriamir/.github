@@ -81,6 +81,33 @@ def find_block(lines: list[str], marker: str) -> tuple[int, int] | None:
     return None
 
 
+def load_manifest() -> list[dict]:
+    try:
+        data = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError) as error:
+        raise SystemExit(f"meta_sync: cannot parse {MANIFEST}: {error}") from error
+    entries = data.get("file", [])
+    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+        raise SystemExit(f"meta_sync: {MANIFEST}: [[file]] must be an array of tables")
+    for i, entry in enumerate(entries, 1):
+        mode = entry.get("mode", "file")
+        if mode not in ("file", "block"):
+            raise SystemExit(
+                f"meta_sync: {MANIFEST}: entry {i}: mode must be 'file' or 'block', not {mode!r}"
+            )
+        required = {"source", "path", "dest"}
+        if mode == "block":
+            required.add("marker")
+        if not str(entry.get("source", "")).startswith("file:"):
+            required.add("ref")
+        bad = sorted(k for k in required if not isinstance(entry.get(k), str))
+        if bad:
+            raise SystemExit(
+                f"meta_sync: {MANIFEST}: entry {i}: missing or non-string key(s): {', '.join(bad)}"
+            )
+    return entries
+
+
 def check_entry(entry: dict, canonical: str) -> str | None:
     dest = Path(entry["dest"])
     if not dest.exists():
@@ -140,7 +167,7 @@ def main(argv: list[str]) -> int:
     if not MANIFEST.exists():
         print(f"meta_sync: no {MANIFEST} in {Path.cwd()}", file=sys.stderr)
         return 2
-    entries = tomllib.loads(MANIFEST.read_text(encoding="utf-8")).get("file", [])
+    entries = load_manifest()
     failures = []
     for entry in entries:
         canonical = fetch(entry)

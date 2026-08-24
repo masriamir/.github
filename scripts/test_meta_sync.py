@@ -136,5 +136,30 @@ mode = "file"
         r.returncode != 0 and "40-char commit sha" in r.stderr and "Traceback" not in r.stderr,
     )
 
+    # A malformed manifest fails cleanly too: parse error, wrong shape, missing keys.
+    def manifest_case(name: str, toml_text: str, needle: str) -> None:
+        d = root / name
+        d.mkdir()
+        (d / ".meta-manifest.toml").write_text(toml_text)
+        r = run(d, "check")
+        case(
+            f"{name} fails cleanly",
+            r.returncode != 0 and needle in r.stderr and "Traceback" not in r.stderr,
+        )
+
+    manifest_case("parse-error", "[[file]\n", "cannot parse")
+    manifest_case("wrong-shape", 'file = "not a table"\n', "array of tables")
+    manifest_case(
+        "missing-keys",
+        f'[[file]]\nsource = "file:{canonical}"\npath = "templates/block.txt"\n'
+        'dest = "config.txt"\nmode = "block"\n',  # block mode without marker
+        "missing or non-string key(s): marker",
+    )
+    manifest_case(
+        "bad-mode",
+        f'[[file]]\nsource = "file:{canonical}"\npath = "t"\ndest = "d"\nmode = "sideways"\n',
+        "mode must be 'file' or 'block'",
+    )
+
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
