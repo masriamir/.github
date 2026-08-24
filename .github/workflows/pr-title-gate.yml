@@ -1,0 +1,16 @@
+name: PR Title Gate
+
+# This repository's own PR-title check, dogfooding the reusable workflow it
+# publishes. The local `uses: ./…` reference runs the PR head's copy — fine while
+# this check is advisory; if it ever becomes a required check, revisit the
+# judge-pinning question (a PR could otherwise relax its own validator).
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    uses: ./.github/workflows/pr-title.yml

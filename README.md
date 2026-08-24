@@ -29,13 +29,16 @@ copies; canonical versions will live under `templates/`.
 - **Supply chain:** third-party GitHub Actions are pinned to full commit SHAs (readable ref kept in a
   trailing comment); Dependabot proposes the bumps.
 
-## Layout (planned)
+## Layout
 
-- `templates/` — canonical copies of shared files, consumed by each repository's `.meta-manifest`
-  via a `meta-check` drift check
-- `scripts/` — shared validation and sync scripts (Conventional Commit subject validator, `meta_sync`)
-- `.github/workflows/` — reusable workflows (`pr-title`, `meta-check`) plus this repository's own CI
-- `claude/skills/` — Claude Code process skills
+- [`templates/`](templates/) — canonical copies of shared files, consumed by each repository's
+  `.meta-manifest.toml` via the `meta-check` drift check; `templates/README.md` documents which
+  entries are synced and which are one-time seeds
+- [`scripts/`](scripts/) — `check-conventional-subject.py` (+ regression suite) and
+  `meta_sync.py` (+ self-test)
+- [`.github/workflows/`](.github/workflows/) — reusable `pr-title.yml` and `meta-check.yml`,
+  plus this repository's own CI and PR-title gate
+- `claude/skills/` — Claude Code process skills (planned)
 
 Conventions specific to the **crusty** family of repositories live in
 [`crusty-meta`](https://github.com/masriamir/crusty-meta).

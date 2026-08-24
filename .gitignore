@@ -1,0 +1,31 @@
+# >>> meta:gitignore-base
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+
+# Environment / local overrides
+.env
+.env.local
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
+# Temporary files
+/.tmp/
+
+# Claude Code agent worktrees (ephemeral, created by Claude Code)
+.claude/worktrees/
+
+# Ad-hoc local git worktrees
+.worktrees/
+
+# AI agent artifacts (superpowers plans/specs — never committed)
+docs/superpowers/
+
+# Playwright MCP browser-session artifacts
+.playwright-mcp/
+# <<< meta:gitignore-base
