@@ -1,0 +1,45 @@
+name: PR Title
+
+# Reusable workflow: validates the calling PR's title as a Conventional Commit.
+#
+# PRs squash-merge, so the PR title becomes the only commit on `main` and is the
+# string the changelog/version tooling parses — lefthook's commit-msg hook checks
+# branch commits, which are exactly what squash-merge discards.
+#
+# The judge is the CALLER's vendored `scripts/check-conventional-subject.py`. That
+# copy is kept byte-identical to this repository's canonical one by the meta-check
+# drift gate, so the validator is effectively pinned without a second checkout —
+# and it is self-tested here before it judges anything, so a regression in it
+# cannot pass silently.
+#
+# Call from a repository with:
+#
+#   on:
+#     pull_request:
+#       types: [opened, edited, reopened, ready_for_review, synchronize]
+#   jobs:
+#     pr-title:
+#       uses: masriamir/.github/.github/workflows/pr-title.yml@<pinned sha>
+#
+# (`edited` catches a retitle; `synchronize` re-attaches the check to each new
+# head SHA.)
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Self-test the validator
+        run: sh scripts/test-conventional-subject.sh
+      - name: Validate PR title
+        env:
+          # Via the environment, never interpolated into the script: a PR title is
+          # attacker-controlled text.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | python3 scripts/check-conventional-subject.py

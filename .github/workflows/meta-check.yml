@@ -1,0 +1,26 @@
+name: Meta Check
+
+# Reusable workflow: fails when a shared file in the calling repository has
+# drifted from its pinned canonical source (see scripts/meta_sync.py for the
+# manifest format). Callers vendor `scripts/meta_sync.py` and carry a
+# `.meta-manifest.toml` at the repository root.
+#
+# Call from a repository with:
+#
+#   jobs:
+#     meta-check:
+#       uses: masriamir/.github/.github/workflows/meta-check.yml@<pinned sha>
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  meta-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Shared files match their pinned canonical sources
+        run: python3 scripts/meta_sync.py check

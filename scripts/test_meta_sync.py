@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Self-test for meta_sync.py.
+
+Builds a canonical source directory and a consuming repository directory under a
+tempdir, wires them together with a `file:` manifest, and exercises check/sync for
+both modes plus the failure paths. Stdlib only; run directly with python3.
+"""
+
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+SCRIPT = Path(__file__).resolve().parent / "meta_sync.py"
+passed = failed = 0
+
+
+def run(cwd: Path, command: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), command],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+
+
+def case(name: str, condition: bool) -> None:
+    global passed, failed
+    if condition:
+        passed += 1
+    else:
+        failed += 1
+        print(f"FAIL  {name}", file=sys.stderr)
+
+
+with tempfile.TemporaryDirectory() as td:
+    root = Path(td)
+    canonical = root / "canonical"
+    (canonical / "templates").mkdir(parents=True)
+    shared_src = canonical / "templates" / "shared.txt"
+    block_src = canonical / "templates" / "block.txt"
+    shared_src.write_text("canonical line 1\ncanonical line 2\n")
+    block_src.write_text("shared A\nshared B\n")
+
+    repo = root / "repo"
+    repo.mkdir()
+    (repo / ".meta-manifest.toml").write_text(
+        f"""
+[[file]]
+source = "file:{canonical}"
+path = "templates/shared.txt"
+dest = "shared.txt"
+mode = "file"
+
+[[file]]
+source = "file:{canonical}"
+path = "templates/block.txt"
+dest = "config.txt"
+mode = "block"
+marker = "base"
+"""
+    )
+
+    # Nothing wired up yet: check fails on both entries.
+    r = run(repo, "check")
+    case("check fails while destinations are missing", r.returncode == 1)
+    case("missing destination is named", "destination missing" in r.stderr)
+
+    # sync creates the file-mode dest, then aborts on the unseeded block dest.
+    r = run(repo, "sync")
+    case("sync aborts on missing block markers", r.returncode != 0)
+    case("file-mode dest was still created", (repo / "shared.txt").read_text() == shared_src.read_text())
+
+    # Seed the block markers; sync then fills the block and preserves local content.
+    (repo / "config.txt").write_text("local top\n# >>> meta:base\n# <<< meta:base\nlocal bottom\n")
+    r = run(repo, "sync")
+    case("sync succeeds once markers exist", r.returncode == 0)
+    expected = "local top\n# >>> meta:base\nshared A\nshared B\n# <<< meta:base\nlocal bottom\n"
+    case("block filled, local content preserved", (repo / "config.txt").read_text() == expected)
+    r = run(repo, "check")
+    case("check passes when in sync", r.returncode == 0)
+
+    # Local drift in each mode is caught, and sync repairs it.
+    (repo / "shared.txt").write_text("tampered\n")
+    (repo / "config.txt").write_text("local top\n# >>> meta:base\ntampered\n# <<< meta:base\nlocal bottom\n")
+    r = run(repo, "check")
+    case("check fails on drift in both modes", r.returncode == 1 and r.stderr.count("drift") == 2)
+    run(repo, "sync")
+    case("sync repairs drift", run(repo, "check").returncode == 0)
+
+    # A canonical change is drift too, until synced.
+    shared_src.write_text("canonical line 1\ncanonical line 2\ncanonical line 3\n")
+    case("canonical change shows as drift", run(repo, "check").returncode == 1)
+    run(repo, "sync")
+    case("sync adopts the canonical change", run(repo, "check").returncode == 0)
+
+    # Usage and missing-manifest paths exit 2.
+    case("unknown command exits 2", run(repo, "bogus").returncode == 2)
+    empty = root / "empty"
+    empty.mkdir()
+    case("missing manifest exits 2", run(empty, "check").returncode == 2)
+
+print(f"{passed} passed, {failed} failed")
+sys.exit(1 if failed else 0)
