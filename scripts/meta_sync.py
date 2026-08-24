@@ -131,11 +131,13 @@ def check_entry(entry: dict, canonical: str) -> str | None:
         actual, label = "".join(lines[bounds[0] + 1 : bounds[1]]), f"{dest} [block {marker}]"
     if actual == canonical:
         return None
+    # Old file = the local destination, new file = canonical: the `+` lines are
+    # what `sync` would bring in, answering "what changes locally to match?".
     diff = difflib.unified_diff(
-        canonical.splitlines(keepends=True),
         actual.splitlines(keepends=True),
-        "canonical",
+        canonical.splitlines(keepends=True),
         label,
+        "canonical",
     )
     return f"{entry_id(entry)}: drift\n" + "".join(diff)
 
