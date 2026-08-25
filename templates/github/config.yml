@@ -1,0 +1,10 @@
+# Seed for .github/ISSUE_TEMPLATE/config.yml — copy into a repo and replace REPO
+# with the repository name. Requires GitHub Discussions enabled for the first link.
+blank_issues_enabled: true
+contact_links:
+  - name: Question or idea
+    url: https://github.com/masriamir/REPO/discussions
+    about: Ask a question or float an idea in Discussions rather than opening an issue.
+  - name: Security vulnerability
+    url: https://github.com/masriamir/REPO/blob/main/SECURITY.md
+    about: Report a vulnerability as described in SECURITY.md — never in a public issue.
