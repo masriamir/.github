@@ -38,7 +38,6 @@ copies; canonical versions will live under `templates/`.
   `meta_sync.py` (+ self-test)
 - [`.github/workflows/`](.github/workflows/) — reusable `pr-title.yml` and `meta-check.yml`,
   plus this repository's own CI and PR-title gate
-- `claude/skills/` — Claude Code process skills (planned)
 
 Conventions specific to the **crusty** family of repositories live in
 [`crusty-meta`](https://github.com/masriamir/crusty-meta).
