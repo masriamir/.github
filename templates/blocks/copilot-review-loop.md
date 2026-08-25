@@ -1,4 +1,4 @@
-PRs are reviewed automatically by `copilot-pull-request-reviewer`. Work through its comments — review threads **and** the suppressed comments in the review body — with the review-resolution skill, across as many rounds as needed. Verify each finding against the actual code before acting; bots are sometimes wrong or working from a stale diff.
+PRs are reviewed automatically by `copilot-pull-request-reviewer`. Work through its comments — review threads **and** the suppressed comments in the review body — across as many rounds as needed. Verify each finding against the actual code before acting; bots are sometimes wrong or working from a stale diff.
 
 A PR is ready for human review only when **all** of these hold:
 
