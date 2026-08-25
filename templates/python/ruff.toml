@@ -13,6 +13,11 @@
 # be dropped instead, since ruff infers it from `requires-python`.
 line-length = 88
 target-version = "py314"
+# hatch-vcs writes src/<package>/_version.py at build time; it is generated, not
+# authored, and fails both `ruff format --check` and `ruff check` as emitted.
+# Globbed so it needs no per-repository edit (aelus spells the same exclusion out
+# in full). Drop this if the repository does not use hatch-vcs.
+extend-exclude = ["**/_version.py"]
 src = ["src"]
 
 [lint]

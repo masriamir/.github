@@ -22,6 +22,7 @@ Two kinds of entry:
 | `rust/rustfmt.toml` | synced | |
 | `rust/deny.toml` | seed | audit config legitimately diverges (e.g. wildcard-path exemptions) |
 | `python/lefthook.yml` | synced | whole file; assumes the vendored validator below, plus `uv` and ruff/mypy/ty in a dev group |
+| `python/pyproject.toml` | seed | supplies the dev group `python/lefthook.yml` needs; replace every `PROJECT_NAME`/`PACKAGE_NAME` |
 | `python/ruff.toml` | seed | may be inlined under `[tool.ruff]` in `pyproject.toml` instead |
 | `python/mypy.ini` | seed | `files` is load-bearing — the hook runs `mypy` with no path argument |
 | `python/ty.toml` | seed | ty is pre-1.0; pin it, and expect per-repo `[[overrides]]` |
