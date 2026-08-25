@@ -1,0 +1,73 @@
+# Seed ruff config for Python repositories (masriamir/.github,
+# templates/python/ruff.toml — copied once when setting a repository up, then
+# expected to diverge; it is in no manifest).
+#
+# A repository may keep this standalone or inline it under [tool.ruff] in
+# pyproject.toml (prefix each table: [tool.ruff.lint], [tool.ruff.format], …).
+# Adjust `target-version`, `src` and `known-first-party` to the repository's own
+# layout — the commented-out rule families below are deliberate opt-outs, left in
+# place so enabling one is a visible edit rather than a rediscovery.
+line-length = 88
+target-version = "py313"
+src = ["src"]
+
+[lint]
+select = [
+  #"ANN",  # flake8-annotations
+  "S",  # flake8-bandit
+  "B",  # flake8-bugbear
+  "A",  # flake8-builtins
+  "COM",  # flake8-commas
+  "C4",  # flake8-comprehensions
+  #"DTZ",  # flake8-datetimez
+  #"INT",  # flake8-gettext
+  #"ISC",  # flake8-implicit-str-concat
+  #"ICN",  # flake8-import-conventions
+  #"LOG",  # flake8-logging
+  #"G",  # flake8-logging-format
+  "T20",  # flake8-print
+  #"PYI",  # flake8-pyi
+  #"PT",  # flake8-pytest-style
+  #"Q",  # flake8-quotes
+  #"RET",  # flake8-return
+  #"SLF",  # flake8-self
+  #"SIM",  # flake8-simplify
+  #"TC",  # flake8-type-checking
+  #"ARG",  # flake8-unused-arguments
+  "PTH",  # flake8-use-pathlib
+  "I",  # isort
+  "C90",  # mccabe
+  "N",  # pep8-naming
+  "E",  # pycodestyle-error
+  "W",  # pycodestyle-warning
+  #"DOC",  # pydoclint
+  #"D",  # pydocstyle
+  "F",  # Pyflakes
+  "PL",  # Pylint
+  "UP",  # pyupgrade
+  "RUF"  # Ruff-specific rules
+]
+ignore = [
+  "E501",  # Line too long — the formatter owns line width
+  "COM812",  # Missing trailing comma — conflicts with the formatter
+]
+
+[lint.per-file-ignores]
+"tests/**" = [
+  "S101",  # assert statements are how tests assert
+  "S105",  # hardcoded password strings (dummy credentials)
+  "S106",  # hardcoded password arguments (dummy credentials)
+  "PLR2004",  # magic value comparisons read fine in tests
+  "PLC0415",  # import not at top level (common in tests)
+]
+
+[lint.isort]
+known-first-party = ["src"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"

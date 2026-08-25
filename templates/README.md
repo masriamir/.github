@@ -21,12 +21,17 @@ Two kinds of entry:
 | `rust/lefthook.yml` | synced | whole file; assumes the vendored validator below |
 | `rust/rustfmt.toml` | synced | |
 | `rust/deny.toml` | seed | audit config legitimately diverges (e.g. wildcard-path exemptions) |
+| `python/lefthook.yml` | synced | whole file; assumes the vendored validator below, plus `uv` and ruff/mypy/ty in a dev group |
+| `python/ruff.toml` | seed | may be inlined under `[tool.ruff]` in `pyproject.toml` instead |
+| `python/mypy.ini` | seed | `files` is load-bearing — the hook runs `mypy` with no path argument |
+| `python/ty.toml` | seed | ty is pre-1.0; pin it, and expect per-repo `[[overrides]]` |
 | `github/bug_report.yml` | seed | dest `.github/ISSUE_TEMPLATE/bug_report.yml`; per-repo fields diverge |
 | `github/feature_request.yml` | seed | dest `.github/ISSUE_TEMPLATE/feature_request.yml`; per-repo fields diverge |
 | `github/config.yml` | seed | dest `.github/ISSUE_TEMPLATE/config.yml`; replace `REPO` with the repo name |
 | `github/pull_request_template.md` | seed | dest `.github/PULL_REQUEST_TEMPLATE.md`; per-repo validation steps diverge |
 | `gitignore/base.gitignore` | synced (block) | marker `gitignore-base` inside the repo's `.gitignore` |
 | `gitignore/rust.gitignore` | synced (block) | marker `gitignore-rust` |
+| `gitignore/python.gitignore` | synced (block) | marker `gitignore-python` |
 | `../scripts/check-conventional-subject.py` | synced | vendored to `scripts/`, together with `test-conventional-subject.sh` |
 | `../scripts/meta_sync.py` | synced | vendored to `scripts/`; the sync tool itself is manifest-tracked |
 
