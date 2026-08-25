@@ -162,22 +162,71 @@ mode = "file"
         "mode must be 'file' or 'block'",
     )
 
-    # Unreadable (non-UTF8) destinations and canonical sources fail cleanly too.
-    (repo / "shared.txt").write_bytes(b"\xff\xfe\x00 not utf-8")
+    # A non-UTF8 manifest fails cleanly (UnicodeDecodeError is a ValueError, not
+    # an OSError — load_manifest must still turn it into a clean diagnostic).
+    badenc = root / "bad-encoding"
+    badenc.mkdir()
+    (badenc / ".meta-manifest.toml").write_bytes(b"\xff\xfe not utf-8 toml")
+    r = run(badenc, "check")
+    case(
+        "non-UTF8 manifest fails cleanly",
+        r.returncode != 0 and "cannot parse" in r.stderr and "Traceback" not in r.stderr,
+    )
+
+    # Comparison is byte-for-byte: a CRLF destination is drift against an LF
+    # canonical (text-mode newline translation used to hide this), and sync
+    # rewrites it back to the canonical LF bytes. Pin explicit LF bytes for both
+    # sides so the test is OS-independent — write_text emits CRLF on Windows,
+    # which would corrupt the CRLF/LF distinction this case exists to check.
+    lf = b"canonical line 1\ncanonical line 2\ncanonical line 3\n"
+    shared_src.write_bytes(lf)
+    (repo / "shared.txt").write_bytes(lf.replace(b"\n", b"\r\n"))
+    r = run(repo, "check")
+    case("CRLF vs LF is caught as drift", r.returncode == 1 and "drift" in r.stderr)
+    run(repo, "sync")
+    case("sync restores canonical LF bytes", (repo / "shared.txt").read_bytes() == lf)
+
+    # Byte mode carries arbitrary bytes: a non-UTF8 file-mode canonical syncs and
+    # checks cleanly (no decode on the sync/check path), and a differing non-UTF8
+    # destination is ordinary drift, repaired by sync — not an "unreadable" error.
+    binary = canonical / "templates" / "binary.bin"
+    binary.write_bytes(b"\x00\x01\xff\xfe\nmixed\r\n")
+    (repo / ".meta-manifest.toml").write_text(
+        (repo / ".meta-manifest.toml").read_text()
+        + f'\n[[file]]\nsource = "file:{canonical}"\npath = "templates/binary.bin"\n'
+        'dest = "asset.bin"\nmode = "file"\n'
+    )
+    run(repo, "sync")
+    case("non-UTF8 file-mode canonical syncs byte-exact", (repo / "asset.bin").read_bytes() == binary.read_bytes())
+    case("check passes on the binary entry", run(repo, "check").returncode == 0)
+    (repo / "asset.bin").write_bytes(b"\xff\xfe\x00 tampered")
     r = run(repo, "check")
     case(
-        "non-UTF8 destination reported as a per-entry failure",
-        r.returncode == 1 and "cannot read" in r.stderr and "Traceback" not in r.stderr,
+        "differing non-UTF8 destination is drift, not an unreadable error",
+        r.returncode == 1 and "drift" in r.stderr and "cannot read" not in r.stderr,
     )
-    run(repo, "sync")  # file mode overwrites without reading the destination
-    case("sync restores the non-UTF8 destination", run(repo, "check").returncode == 0)
-    block_src.write_bytes(b"\xff\xfe binary")
-    r = run(repo, "check")
+    run(repo, "sync")
+    case("sync repairs the tampered binary destination", run(repo, "check").returncode == 0)
+
+    # Block mode converges even when the canonical source lacks a final newline:
+    # the body is inserted with a trailing newline so the closing marker keeps its
+    # line and check/sync agree (the no-final-newline source used to loop forever).
+    nonl = root / "no-final-newline"
+    nonl.mkdir()
+    (canonical / "templates" / "nonl.txt").write_bytes(b"body line 1\nbody line 2")  # no trailing \n
+    (nonl / ".meta-manifest.toml").write_text(
+        f'[[file]]\nsource = "file:{canonical}"\npath = "templates/nonl.txt"\n'
+        'dest = "conf.txt"\nmode = "block"\nmarker = "seg"\n'
+    )
+    (nonl / "conf.txt").write_text("top\n# >>> meta:seg\n# <<< meta:seg\nbottom\n")
+    run(nonl, "sync")
+    case("block sync with no-final-newline source succeeds", run(nonl, "check").returncode == 0)
     case(
-        "non-UTF8 canonical fails cleanly",
-        r.returncode != 0 and "cannot fetch" in r.stderr and "Traceback" not in r.stderr,
+        "block sync is idempotent (converges)",
+        run(nonl, "sync").returncode == 0 and run(nonl, "check").returncode == 0,
     )
-    block_src.write_text("shared A\nshared B\n")
+    expected_nonl = "top\n# >>> meta:seg\nbody line 1\nbody line 2\n# <<< meta:seg\nbottom\n"
+    case("block body normalized with a trailing newline", (nonl / "conf.txt").read_text() == expected_nonl)
 
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
