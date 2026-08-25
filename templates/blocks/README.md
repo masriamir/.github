@@ -1,7 +1,7 @@
 # Shared instruction blocks
 
 Canonical, repo-neutral text for conventions that are identical across the crusty family. Each
-file is the single authored version of one convention; consuming repos embed it in their root
+file is the single canonical version of one convention; consuming repos embed it in their root
 `AGENTS.md` between marker lines and keep it current with a `mode = "block"` entry in their
 `.meta-manifest.toml`, drift-checked by `meta-check`.
 
@@ -26,7 +26,7 @@ Manifest entry (per block):
 ```toml
 [[file]]
 source = "masriamir/.github"
-ref    = "<pinned commit sha>"
+ref    = "<40-char commit sha>"   # meta_sync requires an exact 40-hex-char commit, not a tag or short SHA
 path   = "templates/blocks/language-en-us.md"
 dest   = "AGENTS.md"
 mode   = "block"
