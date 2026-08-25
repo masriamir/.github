@@ -1,0 +1,23 @@
+# Seed hatch build config for Python repositories (masriamir/.github,
+# templates/python/hatch.toml — copied once when setting a repository up, then
+# expected to diverge; it is in no manifest).
+#
+# hatchling reads this file as well as a [tool.hatch] table in pyproject.toml,
+# which is why that table does not appear there. Keys here drop the `tool.hatch`
+# prefix: [tool.hatch.version] becomes [version], and so on.
+#
+# Replace PACKAGE_NAME. `source = "vcs"` makes hatch-vcs derive the version from
+# the nearest git tag, which is why pyproject.toml declares version as dynamic.
+
+[version]
+source = "vcs"
+fallback-version = "0.0.0"
+
+[build.hooks.vcs]
+# Generated at build time, never committed: add src/PACKAGE_NAME/_version.py to
+# this repository's .gitignore. templates/python/ruff.toml already excludes it
+# from linting and formatting.
+version-file = "src/PACKAGE_NAME/_version.py"
+
+[build.targets.wheel]
+packages = ["src/PACKAGE_NAME"]

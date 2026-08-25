@@ -2,15 +2,17 @@
 # templates/python/ruff.toml — copied once when setting a repository up, then
 # expected to diverge; it is in no manifest).
 #
-# A repository may keep this standalone or inline it under [tool.ruff] in
-# pyproject.toml (prefix each table: [tool.ruff.lint], [tool.ruff.format], …).
-# Adjust `target-version`, `src` and `known-first-party` to the repository's own
-# layout — the commented-out rule families below are deliberate opt-outs, left in
-# place so enabling one is a visible edit rather than a rediscovery.
+# Keep this standalone: every tool's configuration lives in its own file, and
+# none of it belongs in pyproject.toml. ruff reads this file in preference to a
+# [tool.ruff] table anyway.
 #
-# `target-version` tracks what `uv init` currently pulls in (3.14); lower it for a
-# repository that pins an older interpreter. Inlined under [tool.ruff] the key can
-# be dropped instead, since ruff infers it from `requires-python`.
+# Adjust `target-version` and `src` to the repository's own layout — the
+# commented-out rule families below are deliberate opt-outs, left in place so
+# enabling one is a visible edit rather than a rediscovery.
+#
+# `target-version` tracks what `uv init` currently pulls in (3.14); lower it for
+# a repository that pins an older interpreter. It is set explicitly because ruff
+# can only infer it from `requires-python` when the config lives in pyproject.toml.
 line-length = 88
 target-version = "py314"
 # hatch-vcs writes src/<package>/_version.py at build time; it is generated, not

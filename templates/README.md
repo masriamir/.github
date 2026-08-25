@@ -22,10 +22,13 @@ Two kinds of entry:
 | `rust/rustfmt.toml` | synced | |
 | `rust/deny.toml` | seed | audit config legitimately diverges (e.g. wildcard-path exemptions) |
 | `python/lefthook.yml` | synced | whole file; assumes the vendored validator below, plus `uv` and ruff/mypy/ty in a dev group |
-| `python/pyproject.toml` | seed | supplies the dev group `python/lefthook.yml` needs; replace every `PROJECT_NAME`/`PACKAGE_NAME` |
-| `python/ruff.toml` | seed | may be inlined under `[tool.ruff]` in `pyproject.toml` instead |
+| `python/pyproject.toml` | seed | packaging metadata only, no `[tool.*]`; supplies the dev group `python/lefthook.yml` needs; replace `PROJECT_NAME` |
+| `python/ruff.toml` | seed | |
 | `python/mypy.ini` | seed | `files` is load-bearing — the hook runs `mypy` with no path argument |
 | `python/ty.toml` | seed | ty is pre-1.0; pin it, and expect per-repo `[[overrides]]` |
+| `python/pytest.toml` | seed | needs pytest 9.0+; out-ranks `pytest.ini` and `[tool.pytest.ini_options]` |
+| `python/uv.toml` | seed | uv rejects `default-groups` here, so it is omitted — `uv sync --all-groups` picks up `test` |
+| `python/hatch.toml` | seed | build config; replace `PACKAGE_NAME` |
 | `github/bug_report.yml` | seed | dest `.github/ISSUE_TEMPLATE/bug_report.yml`; per-repo fields diverge |
 | `github/feature_request.yml` | seed | dest `.github/ISSUE_TEMPLATE/feature_request.yml`; per-repo fields diverge |
 | `github/config.yml` | seed | dest `.github/ISSUE_TEMPLATE/config.yml`; replace `REPO` with the repo name |

@@ -2,14 +2,22 @@
 # templates/python/pyproject.toml — copied once when setting a repository up,
 # then expected to diverge; it is in no manifest).
 #
-# Every PROJECT_NAME / PACKAGE_NAME placeholder below must be replaced. The
-# [dependency-groups] block is the one part templates/python/lefthook.yml depends
-# on: that hook runs ruff, mypy and ty through `uv run`, so all three have to
-# resolve in this repository's environment.
+# Replace every PROJECT_NAME placeholder.
+#
+# This file carries standard packaging metadata ONLY — there is deliberately no
+# [tool.*] section in it. Every tool's configuration lives in its own file, each
+# of which takes precedence over the equivalent pyproject.toml table anyway:
+#
+#   ruff    -> ruff.toml        mypy  -> mypy.ini      ty      -> ty.toml
+#   pytest  -> pytest.toml      uv    -> uv.toml       hatch   -> hatch.toml
+#
+# [dependency-groups] stays here because it is standard metadata (PEP 735), not
+# tool configuration. It is also what templates/python/lefthook.yml depends on:
+# that hook runs ruff, mypy and ty through `uv run`, so all three must resolve.
 #
 # Versions here track what `uv init` currently pulls in (Python 3.14). Lower
 # requires-python for a repository that pins an older interpreter, and keep
-# ruff.toml / mypy.ini / ty.toml in step with whatever you choose.
+# ruff.toml / mypy.ini / ty.toml / uv.toml in step with whatever you choose.
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -17,6 +25,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "PROJECT_NAME"
+# Derived from the nearest git tag by hatch-vcs; see hatch.toml.
 dynamic = ["version"]
 authors = [
   { name = "Amir Masri", email = "masriamir@users.noreply.github.com" },
@@ -30,6 +39,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.14",
 ]
+# PEP 639: an SPDX expression string, not the deprecated { text = ... } table.
 license = "MIT"
 # Glob, so it matches LICENSE, LICENCE, LICENSE-MIT, … without further edits.
 license-files = ["LICEN[CS]E*"]
@@ -39,9 +49,12 @@ Homepage = "https://github.com/masriamir/PROJECT_NAME"
 Repository = "https://github.com/masriamir/PROJECT_NAME"
 Issues = "https://github.com/masriamir/PROJECT_NAME/issues"
 
-# `dev` carries the lint/type tools; `test` carries pytest and its plugins. Both
-# are installed by default via [tool.uv] default-groups below. ty is pre-1.0, so
-# it takes an upper bound like the rest.
+# `dev` carries the lint/type tools the pre-commit hook needs; `test` carries
+# pytest and its plugins. uv installs `dev` by default, so bare `uv sync` is
+# enough to run the hook — use `uv sync --all-groups` to pick up `test` as well.
+# (uv's `default-groups` setting would change that, but it is rejected in
+# uv.toml and may only live in pyproject.toml, so it is omitted by design.)
+# ty is pre-1.0, so it takes an upper bound like the rest.
 [dependency-groups]
 dev = [
   "ruff>=0.15,<1.0.0",  # Linting and formatting
@@ -50,44 +63,7 @@ dev = [
 ]
 
 test = [
-  "pytest>=9.0.0,<10.0.0",  # Testing framework
+  "pytest>=9.0.0,<10.0.0",  # Testing framework (9.0+ required for pytest.toml)
   "pytest-cov>=7.0.0,<8.0.0",  # Coverage reporting
   "pytest-watch>=4.2.0,<5.0.0",  # Watch mode for tests
 ]
-
-[tool.uv]
-# Rebuild the environment when the manifest changes, or when the commit/tags move
-# — the latter matters because hatch-vcs derives the version from git.
-cache-keys = [
-  { file = "pyproject.toml" },
-  { git = { commit = true, tags = true } }
-]
-default-groups = [
-  "dev",
-  "test",
-]
-required-version = ">=0.9.9,<1.0.0"
-
-[tool.uv.pip]
-python-version = "3.14"
-
-[tool.hatch.version]
-source = "vcs"
-fallback-version = "0.0.0"
-
-[tool.hatch.build.hooks.vcs]
-# Generated at build time, never committed: add src/PACKAGE_NAME/_version.py to
-# this repository's .gitignore. templates/python/ruff.toml already excludes it
-# from linting and formatting.
-version-file = "src/PACKAGE_NAME/_version.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/PACKAGE_NAME"]
-
-# Keep pytest's configuration HERE and nowhere else. pytest reads exactly one
-# config file: a sibling pytest.ini or pytest.toml takes precedence over this
-# table and pytest then reports "WARNING: ignoring pytest config in
-# pyproject.toml", silently dropping every setting below. Two repositories in
-# this account already carry that duplication.
-[tool.pytest.ini_options]
-testpaths = ["tests"]
