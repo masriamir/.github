@@ -175,15 +175,16 @@ mode = "file"
 
     # Comparison is byte-for-byte: a CRLF destination is drift against an LF
     # canonical (text-mode newline translation used to hide this), and sync
-    # rewrites it back to the canonical LF bytes.
-    (repo / "shared.txt").write_bytes(shared_src.read_bytes().replace(b"\n", b"\r\n"))
+    # rewrites it back to the canonical LF bytes. Pin explicit LF bytes for both
+    # sides so the test is OS-independent — write_text emits CRLF on Windows,
+    # which would corrupt the CRLF/LF distinction this case exists to check.
+    lf = b"canonical line 1\ncanonical line 2\ncanonical line 3\n"
+    shared_src.write_bytes(lf)
+    (repo / "shared.txt").write_bytes(lf.replace(b"\n", b"\r\n"))
     r = run(repo, "check")
     case("CRLF vs LF is caught as drift", r.returncode == 1 and "drift" in r.stderr)
     run(repo, "sync")
-    case(
-        "sync restores canonical LF bytes",
-        (repo / "shared.txt").read_bytes() == shared_src.read_bytes(),
-    )
+    case("sync restores canonical LF bytes", (repo / "shared.txt").read_bytes() == lf)
 
     # Byte mode carries arbitrary bytes: a non-UTF8 file-mode canonical syncs and
     # checks cleanly (no decode on the sync/check path), and a differing non-UTF8
