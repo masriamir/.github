@@ -7,8 +7,12 @@
 # Adjust `target-version`, `src` and `known-first-party` to the repository's own
 # layout — the commented-out rule families below are deliberate opt-outs, left in
 # place so enabling one is a visible edit rather than a rediscovery.
+#
+# `target-version` tracks what `uv init` currently pulls in (3.14); lower it for a
+# repository that pins an older interpreter. Inlined under [tool.ruff] the key can
+# be dropped instead, since ruff infers it from `requires-python`.
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 src = ["src"]
 
 [lint]

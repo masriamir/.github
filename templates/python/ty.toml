@@ -7,8 +7,11 @@
 # pin it with an upper bound in the dev dependency group, and expect to add
 # [[overrides]] blocks here for framework patterns it cannot yet model (Django
 # migrations and DRF attributes are the ones that have needed it so far).
+#
+# python-version tracks what `uv init` currently pulls in (3.14); set it to match
+# the repository's own requires-python.
 [environment]
-python-version = "3.13"
+python-version = "3.14"
 
 [src]
 respect-ignore-files = true
