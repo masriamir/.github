@@ -1,0 +1,23 @@
+# Virtual environment (uv creates .venv/)
+.venv/
+
+# Build / distribution artifacts (hatchling)
+build/
+dist/
+*.egg-info/
+
+# uv.lock and .python-version are intentionally COMMITTED: the pinned interpreter
+# and resolved dependency set are what make installs reproducible.
+# (Do not ignore them.)
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+
+# Coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

@@ -1,0 +1,69 @@
+# Seed pyproject.toml for Python repositories (masriamir/.github,
+# templates/python/pyproject.toml — copied once when setting a repository up,
+# then expected to diverge; it is in no manifest).
+#
+# Replace every PROJECT_NAME placeholder.
+#
+# This file carries standard packaging metadata ONLY — there is deliberately no
+# [tool.*] section in it. Every tool's configuration lives in its own file, each
+# of which takes precedence over the equivalent pyproject.toml table anyway:
+#
+#   ruff    -> ruff.toml        mypy  -> mypy.ini      ty      -> ty.toml
+#   pytest  -> pytest.toml      uv    -> uv.toml       hatch   -> hatch.toml
+#
+# [dependency-groups] stays here because it is standard metadata (PEP 735), not
+# tool configuration. It is also what templates/python/lefthook.yml depends on:
+# that hook runs ruff, mypy and ty through `uv run`, so all three must resolve.
+#
+# Versions here track what `uv init` currently pulls in (Python 3.14). Lower
+# requires-python for a repository that pins an older interpreter, and keep
+# ruff.toml / mypy.ini / ty.toml / uv.toml in step with whatever you choose.
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "PROJECT_NAME"
+# Derived from the nearest git tag by hatch-vcs; see hatch.toml.
+dynamic = ["version"]
+authors = [
+  { name = "Amir Masri", email = "masriamir@users.noreply.github.com" },
+]
+description = "One-line description."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+# Trim to what actually applies; the Python version must track requires-python.
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+]
+# PEP 639: an SPDX expression string, not the deprecated { text = ... } table.
+license = "MIT"
+# Glob, so it matches LICENSE, LICENCE, LICENSE-MIT, … without further edits.
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/masriamir/PROJECT_NAME"
+Repository = "https://github.com/masriamir/PROJECT_NAME"
+Issues = "https://github.com/masriamir/PROJECT_NAME/issues"
+
+# `dev` carries the lint/type tools the pre-commit hook needs; `test` carries
+# pytest and its plugins. uv installs `dev` by default, so bare `uv sync` is
+# enough to run the hook — use `uv sync --all-groups` to pick up `test` as well.
+# (uv's `default-groups` setting would change that, but it is rejected in
+# uv.toml and may only live in pyproject.toml, so it is omitted by design.)
+# ty is pre-1.0, so it takes an upper bound like the rest.
+[dependency-groups]
+dev = [
+  "ruff>=0.15,<1.0.0",  # Linting and formatting
+  "mypy>=1.18,<3.0.0",  # Type checking
+  "ty>=0.0.40,<0.1.0",  # Type checking (pre-1.0, expect churn)
+]
+
+test = [
+  "pytest>=9.0.0,<10.0.0",  # Testing framework (9.0+ required for pytest.toml)
+  "pytest-cov>=7.0.0,<8.0.0",  # Coverage reporting
+  "pytest-watch>=4.2.0,<5.0.0",  # Watch mode for tests
+]

@@ -1,0 +1,86 @@
+# Seed ruff config for Python repositories (masriamir/.github,
+# templates/python/ruff.toml — copied once when setting a repository up, then
+# expected to diverge; it is in no manifest).
+#
+# Keep this standalone: every tool's configuration lives in its own file, and
+# none of it belongs in pyproject.toml. ruff reads this file in preference to a
+# [tool.ruff] table anyway.
+#
+# Adjust `target-version` and `src` to the repository's own layout — the
+# commented-out rule families below are deliberate opt-outs, left in place so
+# enabling one is a visible edit rather than a rediscovery.
+#
+# `target-version` tracks what `uv init` currently pulls in (3.14); lower it for
+# a repository that pins an older interpreter. It is set explicitly because ruff
+# can only infer it from `requires-python` when the config lives in pyproject.toml.
+line-length = 88
+target-version = "py314"
+# hatch-vcs writes src/<package>/_version.py at build time; it is generated, not
+# authored, and fails both `ruff format --check` and `ruff check` as emitted.
+# Globbed so it needs no per-repository edit (aelus spells the same exclusion out
+# in full). Drop this if the repository does not use hatch-vcs.
+extend-exclude = ["**/_version.py"]
+src = ["src"]
+
+[lint]
+select = [
+  #"ANN",  # flake8-annotations
+  "S",  # flake8-bandit
+  "B",  # flake8-bugbear
+  "A",  # flake8-builtins
+  "COM",  # flake8-commas
+  "C4",  # flake8-comprehensions
+  #"DTZ",  # flake8-datetimez
+  #"INT",  # flake8-gettext
+  #"ISC",  # flake8-implicit-str-concat
+  #"ICN",  # flake8-import-conventions
+  #"LOG",  # flake8-logging
+  #"G",  # flake8-logging-format
+  "T20",  # flake8-print
+  #"PYI",  # flake8-pyi
+  #"PT",  # flake8-pytest-style
+  #"Q",  # flake8-quotes
+  #"RET",  # flake8-return
+  #"SLF",  # flake8-self
+  #"SIM",  # flake8-simplify
+  #"TC",  # flake8-type-checking
+  #"ARG",  # flake8-unused-arguments
+  "PTH",  # flake8-use-pathlib
+  "I",  # isort
+  "C90",  # mccabe
+  "N",  # pep8-naming
+  "E",  # pycodestyle-error
+  "W",  # pycodestyle-warning
+  #"DOC",  # pydoclint
+  #"D",  # pydocstyle
+  "F",  # Pyflakes
+  "PL",  # Pylint
+  "UP",  # pyupgrade
+  "RUF"  # Ruff-specific rules
+]
+ignore = [
+  "E501",  # Line too long — the formatter owns line width
+  "COM812",  # Missing trailing comma — conflicts with the formatter
+]
+
+[lint.per-file-ignores]
+"tests/**" = [
+  "S101",  # assert statements are how tests assert
+  "S105",  # hardcoded password strings (dummy credentials)
+  "S106",  # hardcoded password arguments (dummy credentials)
+  "PLR2004",  # magic value comparisons read fine in tests
+  "PLC0415",  # import not at top level (common in tests)
+]
+
+# No `[lint.isort] known-first-party`: ruff already resolves first-party imports
+# from `src` above, and from the project root in a flat layout — verified for both
+# layouts in use here. If inference ever misses a module, add the key naming the
+# importable PACKAGE (e.g. "myapp"), never the source directory.
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
