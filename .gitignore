@@ -5,6 +5,9 @@ Thumbs.db
 *.swp
 *~
 .idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
 # Environment / local overrides
 .env
