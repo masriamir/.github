@@ -65,8 +65,10 @@ ignore = [
   "PLC0415",  # import not at top level (common in tests)
 ]
 
-[lint.isort]
-known-first-party = ["src"]
+# No `[lint.isort] known-first-party`: ruff already resolves first-party imports
+# from `src` above, and from the project root in a flat layout — verified for both
+# layouts in use here. If inference ever misses a module, add the key naming the
+# importable PACKAGE (e.g. "myapp"), never the source directory.
 
 [format]
 quote-style = "double"
