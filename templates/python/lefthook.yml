@@ -37,4 +37,4 @@ commit-msg:
     # Shares its validator with the `pr-title` CI workflow, which checks the PR
     # title — the string squash-merge actually puts on `main`.
     conventional-commits:
-      run: python3 scripts/check-conventional-subject.py < "{1}"
+      run: uv run python scripts/check-conventional-subject.py < "{1}"
