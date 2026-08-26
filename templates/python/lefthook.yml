@@ -1,0 +1,31 @@
+# Canonical lefthook config for Python repositories (masriamir/.github,
+# templates/python/lefthook.yml — synced whole-file via meta-check).
+# Assumes uv-managed tooling and the vendored conventional-subject validator.
+pre-push:
+  commands:
+    branch-name:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        pattern='^(main|(feature|bugfix|hotfix|docs|chore)/([a-z][a-z0-9_-]*|[0-9][a-z0-9_-]*[a-z][a-z0-9_-]*))$'
+        if ! echo "$branch" | grep -qE "$pattern"; then
+          echo "Branch '$branch' does not follow naming conventions."
+          echo "Use: <type>/<slug> where type is feature|bugfix|hotfix|docs|chore (issue number optional, e.g. feature/42-mmap), or main"
+          exit 1
+        fi
+
+pre-commit:
+  parallel: true
+  commands:
+    # Fast checks only. The slow gates (pytest, mypy, ty) stay in CI, mirroring
+    # how the Rust config leaves `cargo test` to CI.
+    format:
+      run: uv run ruff format --check .
+    lint:
+      run: uv run ruff check .
+
+commit-msg:
+  commands:
+    # Shares its validator with the `pr-title` CI workflow, which checks the PR
+    # title — the string squash-merge actually puts on `main`.
+    conventional-commits:
+      run: uv run python scripts/check-conventional-subject.py < "{1}"
