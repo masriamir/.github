@@ -13,10 +13,14 @@ its own opening marker line, so one canonical file serves destinations that nest
 | `language-en-us.md` | `language-en-us` | `AGENTS.md` | American-English spelling rule, third-party exception, "state the pattern" guidance |
 | `commit-conventions.md` | `commit-conventions` | `AGENTS.md` | Conventional Commits; PR-title-is-changelog/version; squash body blank |
 | `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
-| `board-transitions.md` | `board-transitions` | `AGENTS.md` | Agent-driven GitHub Project Status flow |
+| `board-transitions.md` | `board-transitions` | `CLAUDE.md` | Agent-driven GitHub Project Status flow |
 | `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
 | `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared blocking `default` status: 90% target; a missing report fails |
 | `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | One project-and-patch comment on every PR: header, diff, files, footer |
+
+`board-transitions.md` is the one block whose adopters place it in `CLAUDE.md` rather than
+`AGENTS.md` (`crustyview` and `crustywad` both pin it there). The destination is per-adopter and
+comes from each consumer's manifest either way — this column records what adopters actually do.
 
 Destination markers use the comment syntax appropriate to the consumer file. For example, an
 instruction block in `AGENTS.md` uses HTML comments:
