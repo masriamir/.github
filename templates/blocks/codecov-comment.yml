@@ -1,2 +1,5 @@
-  layout: "reach, diff, files"
-  require_changes: true
+# require_changes is explicit rather than left to Codecov's default: the shared
+# review gate reads this comment on every PR, so it has to be posted even when a
+# change moves coverage by nothing.
+require_changes: false
+layout: "condensed_header, diff, condensed_files, condensed_footer"
