@@ -56,9 +56,12 @@ MANIFEST = Path(".meta-manifest.toml")
 
 # Canonical content by (source, ref, path). One logical policy is often split
 # across several entries — the same file synced into two markers, or into two
-# destinations — and without this each one would repeat the network round-trip
-# for bytes already in hand. Keyed on the pin, so a cache hit is always the same
-# immutable commit's content, never a stale read.
+# destinations — and without this each one would repeat the round-trip for bytes
+# already in hand. A GitHub source is keyed on its 40-char commit pin, so a hit
+# there is always that immutable commit's content. A `file:` source carries no
+# such guarantee, so for it this is only an intra-run read cache: the file could
+# change underneath a run. Nothing is cached across runs — each invocation is a
+# fresh process.
 _FETCHED: dict[tuple[str, str, str], bytes] = {}
 
 
