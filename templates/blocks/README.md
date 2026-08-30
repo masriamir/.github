@@ -46,6 +46,10 @@ comment:
 # <<< meta:codecov-policy
 ```
 
+The synchronized block owns the complete top-level `coverage` and `comment` mappings. A consumer
+must not define either key again outside the markers because duplicate YAML keys are ambiguous and
+may be rejected. Distinct top-level settings, such as a repository-specific `ignore`, remain local.
+
 Manifest entry for an instruction block:
 
 ```toml
