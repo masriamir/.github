@@ -33,11 +33,21 @@ Two kinds of entry:
 | `github/feature_request.yml` | seed | dest `.github/ISSUE_TEMPLATE/feature_request.yml`; per-repo fields diverge |
 | `github/config.yml` | seed | dest `.github/ISSUE_TEMPLATE/config.yml`; replace `REPO` with the repo name |
 | `github/pull_request_template.md` | seed | dest `.github/PULL_REQUEST_TEMPLATE.md`; per-repo validation steps diverge |
+| `blocks/language-en-us.md` | synced (block) | marker `language-en-us`; dest `AGENTS.md` |
+| `blocks/commit-conventions.md` | synced (block) | marker `commit-conventions`; dest `AGENTS.md` |
+| `blocks/branch-naming.md` | synced (block) | marker `branch-naming`; dest `AGENTS.md` |
+| `blocks/board-transitions.md` | synced (block) | marker `board-transitions`; dest `AGENTS.md` |
+| `blocks/copilot-review-loop.md` | synced (block) | marker `copilot-review-loop`; dest `AGENTS.md` |
+| `blocks/codecov-status-default.yml` | synced (block) | one file, two markers: `codecov-project-status` and `codecov-patch-status` in `codecov.yml`; blocking 90% target, and a missing report fails — adopt only once the repo uploads coverage |
+| `blocks/codecov-comment.yml` | synced (block) | marker `codecov-comment` inside `comment`; one project-and-patch comment on every PR. `after_n_builds` is repo-specific — set it locally, outside the marker |
 | `gitignore/base.gitignore` | synced (block) | marker `gitignore-base` inside the repo's `.gitignore` |
 | `gitignore/rust.gitignore` | synced (block) | marker `gitignore-rust` |
 | `gitignore/python.gitignore` | synced (block) | marker `gitignore-python` |
 | `../scripts/check-conventional-subject.py` | synced | vendored to `scripts/`, together with `test-conventional-subject.sh` |
 | `../scripts/meta_sync.py` | synced | vendored to `scripts/`; the sync tool itself is manifest-tracked |
+
+Every `blocks/` entry is documented in [`blocks/README.md`](blocks/README.md), which covers
+marker placement, adoption, and opting out.
 
 Block-mode markers in a destination file (comment leader is the destination's own):
 
@@ -46,6 +56,10 @@ Block-mode markers in a destination file (comment leader is the destination's ow
 …canonical content…
 # <<< meta:gitignore-base
 ```
+
+Canonical block files carry no leading indentation. On insertion the body is re-indented to the
+opening marker line's own leading whitespace, so one canonical file serves destinations that nest
+it at different depths.
 
 Manifest example (`.meta-manifest.toml` at a consuming repository's root):
 

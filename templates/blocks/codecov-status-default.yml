@@ -1,0 +1,6 @@
+# One source shared by the project and patch statuses, so they cannot drift apart.
+default:
+  target: 90%
+  if_not_found: failure  # a missing report is a broken upload, not a pass
+  if_ci_failed: error    # a red CI run cannot yield a green coverage status
+  informational: false   # this status blocks; it does not merely report

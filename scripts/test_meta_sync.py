@@ -6,9 +6,11 @@ tempdir, wires them together with a `file:` manifest, and exercises check/sync f
 both modes plus the failure paths. Stdlib only; run directly with python3.
 """
 
+import difflib
 import subprocess
 import sys
 import tempfile
+import textwrap
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent / "meta_sync.py"
@@ -24,13 +26,34 @@ def run(cwd: Path, command: str) -> subprocess.CompletedProcess:
     )
 
 
-def case(name: str, condition: bool) -> None:
+def case(name: str, condition: bool, detail: str = "") -> None:
+    """Record one assertion, printing `detail` when it fails.
+
+    Each assertion stands alone and carries its own evidence — the subprocess's
+    stderr, or a diff of the bytes that disagreed. Bundling several conditions
+    into one `case` with `and` would short-circuit, reporting a single opaque
+    line that cannot distinguish "sync errored" from "content differs".
+    """
     global passed, failed
     if condition:
         passed += 1
     else:
         failed += 1
         print(f"FAIL  {name}", file=sys.stderr)
+        if detail.strip():
+            print(textwrap.indent(detail.rstrip("\n"), "      "), file=sys.stderr)
+
+
+def byte_diff(actual: bytes, expected: bytes) -> str:
+    """Unified diff of two byte strings, decoded only for display."""
+    return "".join(
+        difflib.unified_diff(
+            actual.decode("utf-8", "replace").splitlines(keepends=True),
+            expected.decode("utf-8", "replace").splitlines(keepends=True),
+            "actual",
+            "expected",
+        )
+    )
 
 
 with tempfile.TemporaryDirectory() as td:
@@ -227,6 +250,152 @@ mode = "file"
     )
     expected_nonl = "top\n# >>> meta:seg\nbody line 1\nbody line 2\n# <<< meta:seg\nbottom\n"
     case("block body normalized with a trailing newline", (nonl / "conf.txt").read_text() == expected_nonl)
+
+    # Canonical block fragments are nesting-neutral: they carry no leading
+    # indentation, and each destination supplies the depth from its own opening
+    # marker line. That is what lets one fragment serve adopters that nest
+    # differently — the shape of the Codecov policy, where a single status
+    # fragment lands under both `project:` and `patch:`, in files that may use
+    # two- or four-space YAML. Baking the depth into the canonical file instead
+    # would splice wrongly-indented bytes into any file that nests differently,
+    # producing invalid YAML that byte-oriented `check` cannot see.
+    #
+    # Built here in the tempdir rather than read from templates/blocks/: this is
+    # a test of the sync mechanism, so it must not fail when a policy value is
+    # legitimately edited, and must still run where meta_sync.py is vendored
+    # without the canonical tree beside it. Bytes throughout — write_text emits
+    # CRLF on Windows and read_text normalizes it away again, which would hide
+    # the mixed endings that splicing LF fragment bytes into a CRLF destination
+    # produces (the same trap the CRLF case above pins explicitly).
+    status_src = canonical / "templates" / "status.yml"
+    status_src.write_bytes(b"default:\n  target: 90%\n")
+
+    nested = root / "nested"
+    nested.mkdir()
+    (nested / ".meta-manifest.toml").write_text(
+        f"""
+[[file]]
+source = "file:{canonical}"
+path = "templates/status.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "project-status"
+
+[[file]]
+source = "file:{canonical}"
+path = "templates/status.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "patch-status"
+"""
+    )
+    (nested / "codecov.yml").write_bytes(
+        b"coverage:\n"
+        b"  status:\n"
+        b"    project:\n"
+        b"      # >>> meta:project-status\n"
+        b"      # <<< meta:project-status\n"
+        b"      strict:\n"
+        b"        target: 95%\n"
+        b"    patch:\n"
+        b"      # >>> meta:patch-status\n"
+        b"      # <<< meta:patch-status\n"
+        b"ignore:\n"
+        b'  - "examples/**"\n'
+    )
+    expected_nested = (
+        b"coverage:\n"
+        b"  status:\n"
+        b"    project:\n"
+        b"      # >>> meta:project-status\n"
+        b"      default:\n"
+        b"        target: 90%\n"
+        b"      # <<< meta:project-status\n"
+        b"      strict:\n"
+        b"        target: 95%\n"
+        b"    patch:\n"
+        b"      # >>> meta:patch-status\n"
+        b"      default:\n"
+        b"        target: 90%\n"
+        b"      # <<< meta:patch-status\n"
+        b"ignore:\n"
+        b'  - "examples/**"\n'
+    )
+    r = run(nested, "sync")
+    case("one fragment syncs into two markers", r.returncode == 0, r.stderr)
+    nested_actual = (nested / "codecov.yml").read_bytes()
+    case(
+        "fragment indented to each marker's depth, local siblings preserved",
+        nested_actual == expected_nested,
+        byte_diff(nested_actual, expected_nested),
+    )
+    r = run(nested, "check")
+    case("check agrees with sync on re-indented blocks", r.returncode == 0, r.stderr)
+    r = run(nested, "sync")
+    case("re-indented block re-syncs cleanly", r.returncode == 0, r.stderr)
+    r = run(nested, "check")
+    case("re-indented block sync is idempotent", r.returncode == 0, r.stderr)
+
+    # The same canonical fragment, adopted by a repository that indents with four
+    # spaces. Nothing about the fragment changes; only the marker's depth does.
+    wide = root / "wide-indent"
+    wide.mkdir()
+    (wide / ".meta-manifest.toml").write_text(
+        f'[[file]]\nsource = "file:{canonical}"\npath = "templates/status.yml"\n'
+        'dest = "codecov.yml"\nmode = "block"\nmarker = "project-status"\n'
+    )
+    (wide / "codecov.yml").write_bytes(
+        b"coverage:\n"
+        b"    status:\n"
+        b"        project:\n"
+        b"            # >>> meta:project-status\n"
+        b"            # <<< meta:project-status\n"
+    )
+    expected_wide = (
+        b"coverage:\n"
+        b"    status:\n"
+        b"        project:\n"
+        b"            # >>> meta:project-status\n"
+        b"            default:\n"
+        b"              target: 90%\n"
+        b"            # <<< meta:project-status\n"
+    )
+    r = run(wide, "sync")
+    case("four-space adopter syncs the same fragment", r.returncode == 0, r.stderr)
+    wide_actual = (wide / "codecov.yml").read_bytes()
+    case(
+        "fragment re-indented to four-space nesting",
+        wide_actual == expected_wide,
+        byte_diff(wide_actual, expected_wide),
+    )
+    r = run(wide, "check")
+    case("check passes at four-space nesting", r.returncode == 0, r.stderr)
+
+    # Blank lines inside a fragment stay blank: padding them to the marker's
+    # depth would emit trailing whitespace, which many linters reject.
+    (canonical / "templates" / "gap.yml").write_bytes(b"first: 1\n\nsecond: 2\n")
+    gap = root / "blank-lines"
+    gap.mkdir()
+    (gap / ".meta-manifest.toml").write_text(
+        f'[[file]]\nsource = "file:{canonical}"\npath = "templates/gap.yml"\n'
+        'dest = "conf.yml"\nmode = "block"\nmarker = "gap"\n'
+    )
+    (gap / "conf.yml").write_bytes(b"top:\n  # >>> meta:gap\n  # <<< meta:gap\n")
+    r = run(gap, "sync")
+    case("fragment with a blank line syncs", r.returncode == 0, r.stderr)
+    expected_gap = b"top:\n  # >>> meta:gap\n  first: 1\n\n  second: 2\n  # <<< meta:gap\n"
+    gap_actual = (gap / "conf.yml").read_bytes()
+    case(
+        "blank line kept blank, not padded to trailing whitespace",
+        gap_actual == expected_gap,
+        byte_diff(gap_actual, expected_gap),
+    )
+
+    # Markers at column 0 are unaffected: an un-indented destination gets the
+    # fragment bytes verbatim, so existing adopters (.gitignore, AGENTS.md) see
+    # no change from re-indentation.
+    r = run(repo, "check")
+    case("column-0 blocks unchanged by re-indentation", r.returncode == 0, r.stderr)
 
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
