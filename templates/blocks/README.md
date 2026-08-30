@@ -15,7 +15,7 @@ its own opening marker line, so one canonical file serves destinations that nest
 | `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
 | `board-transitions.md` | `board-transitions` | `CLAUDE.md` | Agent-driven GitHub Project Status flow |
 | `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
-| `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared blocking `default` status: 90% target; a missing report fails |
+| `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared blocking `default` status: 90% target; a missing report fails. Only the patch half posts on a free Developer plan — see below |
 | `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | One project-and-patch comment on every PR: header, diff, files, footer |
 
 `board-transitions.md` is the one block whose adopters place it in `CLAUDE.md` rather than
@@ -130,6 +130,36 @@ upload from several CI jobs need it, or Codecov comments on the first partial up
 reads misleading coverage — but the right value is the number of uploads that repository makes, so
 it cannot be shared. Set it locally, outside the marker. The same applies to `flags`, `paths`,
 `branches`, and `component_management`.
+
+### `codecov/project` does not post on a free Developer plan
+
+Project coverage is a paid-plan feature. Codecov's [pricing page](https://about.codecov.io/pricing/)
+lists **Project Coverage** among the features the free Developer plan excludes and the Pro plan
+adds; the free plan includes **Patch Coverage**. On a Developer-plan account the
+`codecov-project-status` block is therefore inert: `codecov/patch` posts and gates, and
+`codecov/project` is never published at all.
+
+The block is still adopted, so the target is defined in one place and applies wherever the account
+is entitled to it. But on this plan **`codecov/patch` is the status that gates**, and
+`codecov/project` must not be added to a branch ruleset's required checks — a required status that
+is never published blocks every merge.
+
+This is a property of the plan, not a misconfiguration, and it was established by elimination
+rather than assumed:
+
+| Ruled out | How |
+|---|---|
+| `target: auto` failing to resolve a base | An absolute `target: 90%` needs no base and behaves identically |
+| Repository-specific fault | Identical across all three adopting repositories |
+| Invalid configuration | `codecov.io/validate` returns `Valid!` and echoes the project block back parsed |
+| Broken upload | Job logs show the token accepted and `Upload queued for processing complete` |
+| Repository visibility | All three adopting repositories are public |
+
+Codecov's own documentation disagrees with itself here: the
+[FAQ](https://docs.codecov.com/docs/frequently-asked-questions) and
+[common-recipe list](https://docs.codecov.com/docs/common-recipe-list) describe the restriction as
+applying only to *private* repositories on the `team` plan, which would grant project coverage to
+any public repository. The observed behavior matches the pricing page rather than the FAQ.
 
 ### Adoption prerequisite
 
