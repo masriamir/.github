@@ -33,6 +33,7 @@ Two kinds of entry:
 | `github/feature_request.yml` | seed | dest `.github/ISSUE_TEMPLATE/feature_request.yml`; per-repo fields diverge |
 | `github/config.yml` | seed | dest `.github/ISSUE_TEMPLATE/config.yml`; replace `REPO` with the repo name |
 | `github/pull_request_template.md` | seed | dest `.github/PULL_REQUEST_TEMPLATE.md`; per-repo validation steps diverge |
+| `blocks/codecov-policy.yml` | synced (block) | marker `codecov-policy` inside `codecov.yml`; strict 90% project and patch targets |
 | `gitignore/base.gitignore` | synced (block) | marker `gitignore-base` inside the repo's `.gitignore` |
 | `gitignore/rust.gitignore` | synced (block) | marker `gitignore-rust` |
 | `gitignore/python.gitignore` | synced (block) | marker `gitignore-python` |

@@ -1,19 +1,21 @@
-# Shared instruction blocks
+# Shared blocks
 
-Canonical, repo-neutral text for conventions that are identical across the crusty family. Each
-file is the single canonical version of one convention; consuming repos embed it in their root
-`AGENTS.md` between marker lines and keep it current with a `mode = "block"` entry in their
-`.meta-manifest.toml`, drift-checked by `meta-check`.
+Canonical, repository-neutral content embedded in consumer-owned files through `meta_sync.py`
+block mode. Each file is the single canonical version of content that must remain identical across
+its adopters; consuming repositories wrap it in destination-appropriate marker comments and pin the
+source commit in `.meta-manifest.toml`.
 
-| Block file | Marker | Covers |
-|---|---|---|
-| `language-en-us.md` | `language-en-us` | American-English spelling rule, third-party exception, "state the pattern" guidance |
-| `commit-conventions.md` | `commit-conventions` | Conventional Commits; PR-title-is-changelog/version; squash body blank |
-| `branch-naming.md` | `branch-naming` | `<type>/<slug>` branch naming; no release branches |
-| `board-transitions.md` | `board-transitions` | Agent-driven GitHub Project Status flow |
-| `copilot-review-loop.md` | `copilot-review-loop` | Ready-for-review = threads resolved + CI green + codecov clean |
+| Block file | Marker | Typical destination | Covers |
+|---|---|---|---|
+| `language-en-us.md` | `language-en-us` | `AGENTS.md` | American-English spelling rule, third-party exception, "state the pattern" guidance |
+| `commit-conventions.md` | `commit-conventions` | `AGENTS.md` | Conventional Commits; PR-title-is-changelog/version; squash body blank |
+| `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
+| `board-transitions.md` | `board-transitions` | `CLAUDE.md` | Agent-driven GitHub Project Status flow |
+| `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
+| `codecov-policy.yml` | `codecov-policy` | `codecov.yml` | Strict 90% project and patch coverage statuses plus changed-lines-only PR comments |
 
-In the consuming repo's `AGENTS.md`:
+Destination markers use the comment syntax appropriate to the consumer file. For example, an
+instruction block in `AGENTS.md` uses HTML comments:
 
 ```markdown
 <!-- >>> meta:language-en-us -->
@@ -21,7 +23,30 @@ In the consuming repo's `AGENTS.md`:
 <!-- <<< meta:language-en-us -->
 ```
 
-Manifest entry (per block):
+The Codecov block in `codecov.yml` uses YAML comments:
+
+```yaml
+# >>> meta:codecov-policy
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 0%
+        base: auto
+    patch:
+      default:
+        target: 90%
+        threshold: 0%
+        base: auto
+
+comment:
+  layout: "reach, diff, files"
+  require_changes: true
+# <<< meta:codecov-policy
+```
+
+Manifest entry for an instruction block:
 
 ```toml
 [[file]]
@@ -33,4 +58,20 @@ mode   = "block"
 marker = "language-en-us"
 ```
 
-Rationale and rollout: `crusty-meta` ADR-0002.
+Manifest entry for the Codecov policy:
+
+```toml
+[[file]]
+source = "masriamir/.github"
+ref = "0123456789abcdef0123456789abcdef01234567"
+path = "templates/blocks/codecov-policy.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-policy"
+```
+
+The sample SHA demonstrates the required 40-character form. Replace it with the exact merged
+upstream commit when adopting the block.
+
+Instruction-block rationale and rollout: `crusty-meta` ADR-0002. The Codecov block is
+account-generic and opt-in; each repository decides whether to adopt it.
