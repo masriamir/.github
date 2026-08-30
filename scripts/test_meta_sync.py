@@ -332,7 +332,9 @@ marker = "patch-status"
     r = run(nested, "check")
     case("check agrees with sync on re-indented blocks", r.returncode == 0, r.stderr)
     r = run(nested, "sync")
-    case("re-indented block sync is idempotent", run(nested, "check").returncode == 0, r.stderr)
+    case("re-indented block re-syncs cleanly", r.returncode == 0, r.stderr)
+    r = run(nested, "check")
+    case("re-indented block sync is idempotent", r.returncode == 0, r.stderr)
 
     # The same canonical fragment, adopted by a repository that indents with four
     # spaces. Nothing about the fragment changes; only the marker's depth does.
