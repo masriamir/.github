@@ -38,8 +38,8 @@ Two kinds of entry:
 | `blocks/branch-naming.md` | synced (block) | marker `branch-naming`; dest `AGENTS.md` |
 | `blocks/board-transitions.md` | synced (block) | marker `board-transitions`; dest `AGENTS.md` |
 | `blocks/copilot-review-loop.md` | synced (block) | marker `copilot-review-loop`; dest `AGENTS.md` |
-| `blocks/codecov-status-default.yml` | synced (block) | one file, two markers: `codecov-project-status` and `codecov-patch-status` in `codecov.yml`; 90% target |
-| `blocks/codecov-comment.yml` | synced (block) | marker `codecov-comment` inside `comment`; a PR comment on every PR |
+| `blocks/codecov-status-default.yml` | synced (block) | one file, two markers: `codecov-project-status` and `codecov-patch-status` in `codecov.yml`; blocking 90% target, and a missing report fails — adopt only once the repo uploads coverage |
+| `blocks/codecov-comment.yml` | synced (block) | marker `codecov-comment` inside `comment`; one project-and-patch comment on every PR. `after_n_builds` is repo-specific — set it locally, outside the marker |
 | `gitignore/base.gitignore` | synced (block) | marker `gitignore-base` inside the repo's `.gitignore` |
 | `gitignore/rust.gitignore` | synced (block) | marker `gitignore-rust` |
 | `gitignore/python.gitignore` | synced (block) | marker `gitignore-python` |

@@ -15,8 +15,8 @@ its own opening marker line, so one canonical file serves destinations that nest
 | `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
 | `board-transitions.md` | `board-transitions` | `AGENTS.md` | Agent-driven GitHub Project Status flow |
 | `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
-| `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared `default` status: 90% absolute target |
-| `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | A PR comment on every PR, with header, diff, file, and footer sections |
+| `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared blocking `default` status: 90% target; a missing report fails |
+| `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | One project-and-patch comment on every PR: header, diff, files, footer |
 
 Destination markers use the comment syntax appropriate to the consumer file. For example, an
 instruction block in `AGENTS.md` uses HTML comments:
@@ -51,22 +51,38 @@ coverage:
   status:
     project:
       # >>> meta:codecov-project-status
+      # One source shared by the project and patch statuses, so they cannot drift apart.
       default:
         target: 90%
+        if_not_found: failure  # a missing report is a broken upload, not a pass
+        if_ci_failed: error    # a red CI run cannot yield a green coverage status
+        informational: false   # this status blocks; it does not merely report
       # <<< meta:codecov-project-status
     patch:
       # >>> meta:codecov-patch-status
+      # One source shared by the project and patch statuses, so they cannot drift apart.
       default:
         target: 90%
+        if_not_found: failure  # a missing report is a broken upload, not a pass
+        if_ci_failed: error    # a red CI run cannot yield a green coverage status
+        informational: false   # this status blocks; it does not merely report
       # <<< meta:codecov-patch-status
 
 comment:
   # >>> meta:codecov-comment
-  # require_changes is explicit rather than left to Codecov's default: the shared
-  # review gate reads this comment on every PR, so it has to be posted even when a
-  # change moves coverage by nothing.
-  require_changes: false
-  layout: "condensed_header, diff, condensed_files, condensed_footer"
+  # Every key here is explicit because the shared review gate depends on it, not
+  # because it differs from Codecov's current default. The gate in
+  # copilot-review-loop.md reads "the codecov comment" on every PR, so the comment
+  # has to exist, stay singular, and show coverage on the changed lines.
+  require_changes: false  # post even when a change moves coverage by nothing
+  require_base: false     # post on a PR with no base report (a repo's first PRs)
+  behavior: default       # update the one comment rather than adding another
+  # layout and hide_project_coverage are one decision, not two: condensed_* plus
+  # hide_project_coverage reduces the comment to the git diff. This policy keeps
+  # project coverage, so both codecov/project and codecov/patch are explained when
+  # either goes red.
+  layout: "header, diff, files, footer"
+  hide_project_coverage: false
   # <<< meta:codecov-comment
 ```
 
@@ -78,11 +94,45 @@ Marker *placement* is still load-bearing: a fragment defines keys meaningful onl
 shown above, so keep each marker under the mapping named in the table. Moving one elsewhere
 produces valid but semantically wrong YAML, which the byte-oriented drift check cannot catch.
 
-`require_changes: false` is deliberate, not an accidental restatement of the Codecov default. The
-[`copilot-review-loop`](copilot-review-loop.md) block makes "the codecov comment reports no
-uncovered changed lines" a precondition for human review, which only holds if the comment is
-always posted — under `require_changes: true` a PR that moves coverage by nothing gets no comment,
-and the gate can never be satisfied.
+### Why the comment fragment pins current defaults
+
+The [`copilot-review-loop`](copilot-review-loop.md) block makes "the codecov comment reports no
+uncovered changed lines" a precondition for human review. That gate holds only if the comment
+reliably exists, stays singular, and shows the changed lines — so the keys it depends on are
+pinned even where they match Codecov's default today, and each one carries its reason in the
+fragment:
+
+| Key | Why it is pinned |
+|---|---|
+| `require_changes: false` | Under `true`, Codecov posts nothing when coverage does not move, so a docs, CI-config, or pure-refactor PR gets no comment and the gate can never be satisfied. |
+| `require_base: false` | Under `true`, a PR with no base report — a repository's first PRs, or a new default branch — gets no comment, with the same result. |
+| `behavior: default` | Updates one comment in place. `new` posts a fresh comment per push, leaving several to disagree about which one the gate means. |
+
+`layout` and `hide_project_coverage` are one decision rather than two. Codecov documents two comment
+shapes: `header, files, footer` with `hide_project_coverage: false` for a full comment, and
+`condensed_header, condensed_files, condensed_footer` with `hide_project_coverage: true` for a
+git-diff-only comment — the `condensed_` prefix is what reduces the comment to patch coverage, not a
+per-status variant. This policy takes the full shape, adding `diff` so patch coverage on the changed
+lines is always present, because the status fragment sets a project status too and a patch-only
+comment would leave `codecov/project` failures unexplained.
+
+`layout` is a single key under `comment`; a status entry accepts no `layout`, so the project and
+patch statuses cannot be given different comment formats.
+
+### Settings that must stay local
+
+`after_n_builds` delays the comment until a given number of uploads have arrived. Repositories that
+upload from several CI jobs need it, or Codecov comments on the first partial upload and the gate
+reads misleading coverage — but the right value is the number of uploads that repository makes, so
+it cannot be shared. Set it locally, outside the marker. The same applies to `flags`, `paths`,
+`branches`, and `component_management`.
+
+### Adoption prerequisite
+
+`if_not_found: failure` inverts Codecov's default, under which a status with no coverage report
+passes — making a broken upload indistinguishable from full coverage. A repository must therefore
+be uploading coverage before it adopts the status fragment; adopting it first leaves both statuses
+red until uploads work.
 
 Add one manifest entry for each adopted fragment, using the same exact merged upstream commit:
 
@@ -129,8 +179,12 @@ coverage:
   status:
     project:
       # >>> meta:codecov-project-status
+      # One source shared by the project and patch statuses, so they cannot drift apart.
       default:
         target: 90%
+        if_not_found: failure  # a missing report is a broken upload, not a pass
+        if_ci_failed: error    # a red CI run cannot yield a green coverage status
+        informational: false   # this status blocks; it does not merely report
       # <<< meta:codecov-project-status
       strict:
         target: 95%
