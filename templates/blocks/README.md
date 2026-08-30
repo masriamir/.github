@@ -12,7 +12,9 @@ source commit in `.meta-manifest.toml`.
 | `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
 | `board-transitions.md` | `board-transitions` | `CLAUDE.md` | Agent-driven GitHub Project Status flow |
 | `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
-| `codecov-policy.yml` | `codecov-policy` | `codecov.yml` | Strict 90% project and patch coverage statuses plus changed-lines-only PR comments |
+| `codecov-project-status.yml` | `codecov-project-status` | `coverage.status.project` in `codecov.yml` | Default project status with a strict 90% target |
+| `codecov-patch-status.yml` | `codecov-patch-status` | `coverage.status.patch` in `codecov.yml` | Default patch status with a strict 90% target |
+| `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | Changed-lines-only PR comments with reach, diff, and file details |
 
 Destination markers use the comment syntax appropriate to the consumer file. For example, an
 instruction block in `AGENTS.md` uses HTML comments:
@@ -22,33 +24,6 @@ instruction block in `AGENTS.md` uses HTML comments:
 ...synced content...
 <!-- <<< meta:language-en-us -->
 ```
-
-The Codecov block in `codecov.yml` uses YAML comments:
-
-```yaml
-# >>> meta:codecov-policy
-coverage:
-  status:
-    project:
-      default:
-        target: 90%
-        threshold: 0%
-        base: auto
-    patch:
-      default:
-        target: 90%
-        threshold: 0%
-        base: auto
-
-comment:
-  layout: "reach, diff, files"
-  require_changes: true
-# <<< meta:codecov-policy
-```
-
-The synchronized block owns the complete top-level `coverage` and `comment` mappings. A consumer
-must not define either key again outside the markers because duplicate YAML keys are ambiguous and
-may be rejected. Distinct top-level settings, such as a repository-specific `ignore`, remain local.
 
 Manifest entry for an instruction block:
 
@@ -62,20 +37,109 @@ mode   = "block"
 marker = "language-en-us"
 ```
 
-Manifest entry for the Codecov policy:
+## Codecov policy fragments
+
+The Codecov policy is split into three independently adoptable fragments so a repository can keep
+local settings at every mapping level. A full adoption looks like this:
+
+```yaml
+coverage:
+  status:
+    project:
+      # >>> meta:codecov-project-status
+      default:
+        target: 90%
+        threshold: 0%
+        base: auto
+      # <<< meta:codecov-project-status
+    patch:
+      # >>> meta:codecov-patch-status
+      default:
+        target: 90%
+        threshold: 0%
+        base: auto
+      # <<< meta:codecov-patch-status
+
+comment:
+  # >>> meta:codecov-comment
+  layout: "reach, diff, files"
+  require_changes: true
+  # <<< meta:codecov-comment
+```
+
+The fragments contain their destination indentation because `meta_sync.py` inserts their bytes
+verbatim. Keep the markers at the nesting shown above; moving a fragment to another mapping can
+produce invalid or semantically incorrect YAML.
+
+Add one manifest entry for each adopted fragment, using the same exact merged upstream commit:
 
 ```toml
 [[file]]
 source = "masriamir/.github"
 ref = "0123456789abcdef0123456789abcdef01234567"
-path = "templates/blocks/codecov-policy.yml"
+path = "templates/blocks/codecov-project-status.yml"
 dest = "codecov.yml"
 mode = "block"
-marker = "codecov-policy"
+marker = "codecov-project-status"
+
+[[file]]
+source = "masriamir/.github"
+ref = "0123456789abcdef0123456789abcdef01234567"
+path = "templates/blocks/codecov-patch-status.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-patch-status"
+
+[[file]]
+source = "masriamir/.github"
+ref = "0123456789abcdef0123456789abcdef01234567"
+path = "templates/blocks/codecov-comment.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-comment"
 ```
 
-The sample SHA demonstrates the required 40-character form. Replace it with the exact merged
-upstream commit when adopting the block.
+The sample SHA demonstrates the required 40-character form. Replace every occurrence with the
+exact merged upstream commit when adopting the fragments.
 
-Instruction-block rationale and rollout: `crusty-meta` ADR-0002. The Codecov block is
-account-generic and opt-in; each repository decides whether to adopt it.
+### Repository-specific settings and overrides
+
+Settings under keys not owned by a marker remain local. Examples include `coverage.precision`, an
+additional comment key such as `behavior`, and a top-level `ignore` list.
+
+A repository can enforce a stricter target while retaining the shared baseline by adding a named
+status after the relevant marker:
+
+```yaml
+coverage:
+  status:
+    project:
+      # >>> meta:codecov-project-status
+      default:
+        target: 90%
+        threshold: 0%
+        base: auto
+      # <<< meta:codecov-project-status
+      strict:
+        target: 95%
+        threshold: 0%
+        base: auto
+```
+
+Codecov publishes `codecov/project` for `default` and `codecov/project/strict` for the named
+status. Require `codecov/project/strict` in that repository's GitHub ruleset to enforce 95%. The
+same pattern can add a stricter named patch status. See Codecov's
+[status-check documentation](https://docs.codecov.com/do/docs/commit-status) for named statuses.
+
+A true replacement is an explicit opt-out at fragment granularity. A repository that wants only a
+single 95% project status omits the `codecov-project-status.yml` manifest entry and authors its
+local `project.default` at 95%; it can still adopt the patch and comment fragments. Likewise, a
+repository that needs a different comment layout omits `codecov-comment.yml` and owns its complete
+`comment` mapping locally.
+
+Never repeat a key already present inside an adopted marker. Duplicate YAML keys are ambiguous and
+may be rejected; use a differently named status for stricter enforcement or omit the fragment to
+replace its default.
+
+Instruction-block rationale and rollout: `crusty-meta` ADR-0002. The Codecov fragments are
+account-generic and opt-in; each repository decides which ones to adopt.

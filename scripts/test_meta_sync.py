@@ -228,5 +228,93 @@ mode = "file"
     expected_nonl = "top\n# >>> meta:seg\nbody line 1\nbody line 2\n# <<< meta:seg\nbottom\n"
     case("block body normalized with a trailing newline", (nonl / "conf.txt").read_text() == expected_nonl)
 
+    # The canonical Codecov fragments are nested YAML blocks whose leading
+    # whitespace is load-bearing. Exercise the real template files to prove
+    # block sync preserves their indentation and local sibling settings.
+    codecov = root / "codecov"
+    codecov.mkdir()
+    repo_root = SCRIPT.parent.parent
+    (codecov / ".meta-manifest.toml").write_text(
+        f"""
+[[file]]
+source = "file:{repo_root}"
+path = "templates/blocks/codecov-project-status.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-project-status"
+
+[[file]]
+source = "file:{repo_root}"
+path = "templates/blocks/codecov-patch-status.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-patch-status"
+
+[[file]]
+source = "file:{repo_root}"
+path = "templates/blocks/codecov-comment.yml"
+dest = "codecov.yml"
+mode = "block"
+marker = "codecov-comment"
+"""
+    )
+    (codecov / "codecov.yml").write_text(
+        "coverage:\n"
+        "  status:\n"
+        "    project:\n"
+        "      # >>> meta:codecov-project-status\n"
+        "      # <<< meta:codecov-project-status\n"
+        "      strict:\n"
+        "        target: 95%\n"
+        "        threshold: 0%\n"
+        "        base: auto\n"
+        "    patch:\n"
+        "      # >>> meta:codecov-patch-status\n"
+        "      # <<< meta:codecov-patch-status\n"
+        "comment:\n"
+        "  # >>> meta:codecov-comment\n"
+        "  # <<< meta:codecov-comment\n"
+        "  behavior: default\n"
+        "ignore:\n"
+        '  - "examples/**"\n'
+    )
+    expected_codecov = (
+        "coverage:\n"
+        "  status:\n"
+        "    project:\n"
+        "      # >>> meta:codecov-project-status\n"
+        "      default:\n"
+        "        target: 90%\n"
+        "        threshold: 0%\n"
+        "        base: auto\n"
+        "      # <<< meta:codecov-project-status\n"
+        "      strict:\n"
+        "        target: 95%\n"
+        "        threshold: 0%\n"
+        "        base: auto\n"
+        "    patch:\n"
+        "      # >>> meta:codecov-patch-status\n"
+        "      default:\n"
+        "        target: 90%\n"
+        "        threshold: 0%\n"
+        "        base: auto\n"
+        "      # <<< meta:codecov-patch-status\n"
+        "comment:\n"
+        "  # >>> meta:codecov-comment\n"
+        '  layout: "reach, diff, files"\n'
+        "  require_changes: true\n"
+        "  # <<< meta:codecov-comment\n"
+        "  behavior: default\n"
+        "ignore:\n"
+        '  - "examples/**"\n'
+    )
+    codecov_sync = run(codecov, "sync")
+    case(
+        "Codecov fragments compose with local overrides",
+        codecov_sync.returncode == 0
+        and (codecov / "codecov.yml").read_text() == expected_codecov
+        and run(codecov, "check").returncode == 0,
+    )
+
 print(f"{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
