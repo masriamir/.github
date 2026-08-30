@@ -168,8 +168,11 @@ entry, so a placeholder left in place fails loudly rather than 404-ing later.
 
 ### Repository-specific settings and overrides
 
-Settings under keys not owned by a marker remain local. Examples include `coverage.precision`, an
-additional comment key such as `behavior`, and a top-level `ignore` list.
+Settings under keys not owned by a marker remain local. Examples include `coverage.precision`, a
+comment key the fragment does not set — `after_n_builds`, say, per "Settings that must stay local"
+above — and a top-level `ignore` list. `behavior`, `require_changes`, `require_base`, `layout`, and
+`hide_project_coverage` are owned by the `codecov-comment` fragment; setting any of them locally
+would duplicate a key the marker already carries.
 
 A repository can enforce a stricter target while retaining the shared baseline by adding a named
 status after the relevant marker:
