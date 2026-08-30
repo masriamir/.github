@@ -36,7 +36,7 @@ Two kinds of entry:
 | `blocks/language-en-us.md` | synced (block) | marker `language-en-us`; dest `AGENTS.md` |
 | `blocks/commit-conventions.md` | synced (block) | marker `commit-conventions`; dest `AGENTS.md` |
 | `blocks/branch-naming.md` | synced (block) | marker `branch-naming`; dest `AGENTS.md` |
-| `blocks/board-transitions.md` | synced (block) | marker `board-transitions`; dest `AGENTS.md` |
+| `blocks/board-transitions.md` | synced (block) | marker `board-transitions`; dest `CLAUDE.md` — the one block not destined for `AGENTS.md` |
 | `blocks/copilot-review-loop.md` | synced (block) | marker `copilot-review-loop`; dest `AGENTS.md` |
 | `blocks/codecov-status-default.yml` | synced (block) | one file, two markers: `codecov-project-status` and `codecov-patch-status` in `codecov.yml`; blocking 90% target, and a missing report fails — adopt only once the repo uploads coverage |
 | `blocks/codecov-comment.yml` | synced (block) | marker `codecov-comment` inside `comment`; one project-and-patch comment on every PR. `after_n_builds` is repo-specific — set it locally, outside the marker |
