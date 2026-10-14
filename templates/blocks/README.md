@@ -15,12 +15,18 @@ its own opening marker line, so one canonical file serves destinations that nest
 | `branch-naming.md` | `branch-naming` | `AGENTS.md` | `<type>/<slug>` branch naming; no release branches |
 | `board-transitions.md` | `board-transitions` | `CLAUDE.md` | Agent-driven GitHub Project Status flow |
 | `copilot-review-loop.md` | `copilot-review-loop` | `AGENTS.md` | Ready-for-review = threads resolved + CI green + codecov clean |
+| `harness-contract.md` | `harness-contract` | `AGENTS.md`, under `## Harness contract` | Specification of the `[harness]` TOML table a repository authors directly below the block: gate, board, test, screenshot, plans, specs, review, coverage, merge, skills, env |
 | `codecov-status-default.yml` | `codecov-project-status` and `codecov-patch-status` | `coverage.status.project` and `coverage.status.patch` in `codecov.yml` | Shared blocking `default` status: 90% target; a missing report fails. Only the patch half posts on a free Developer plan — see below |
 | `codecov-comment.yml` | `codecov-comment` | `comment` in `codecov.yml` | One project-and-patch comment on every PR: header, diff, files, footer |
 
 `board-transitions.md` is the one block whose adopters place it in `CLAUDE.md` rather than
 `AGENTS.md` (`crustyview` and `crustywad` both pin it there). The destination is per-adopter and
 comes from each consumer's manifest either way — this column records what adopters actually do.
+
+`harness-contract.md` is the only block whose adopters place repository-specific values
+*after* it rather than inside it: the block is the specification, and a fenced `toml` block
+with a `[harness]` table follows it under the same heading. The sync compares only the
+marked region, so the values never drift-fail.
 
 Destination markers use the comment syntax appropriate to the consumer file. For example, an
 instruction block in `AGENTS.md` uses HTML comments:
