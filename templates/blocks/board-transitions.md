@@ -7,4 +7,6 @@ Move the GitHub Project board yourself as work progresses and **announce each ch
 | `In progress → In review` | the PR opens |
 | `In review → Done` | the PR merges/closes — **board-automated**, not manual |
 
+**Board-automated** means the project's built-in *Item closed* and *Pull request merged* workflows set Status to `Done`; on a board that has them off, you set `Done` yourself after the merge and announce it. Link every PR to its issue with a closing keyword in the body (`Closes #42`): GitHub then closes the issue when the PR merges, and the board's *Pull request linked to issue* workflow moves the item as soon as the link exists.
+
 `In review` holds through the entire review loop, until human review and merge. Transitions apply only to an issue that is on the board; if one exists but isn't on the board, add it first. Epics carry an **aggregate** Status: `In progress` when their first sub-issue starts work, and `Done` (board-automated) only when every sub-issue closes — set the epic's Status yourself and announce it, since GitHub rolls up completion progress but not the Status field.
